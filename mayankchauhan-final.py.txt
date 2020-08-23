@@ -1,0 +1,67 @@
+import tweepy
+import csv
+import json
+from textblob import TextBlob
+import nltk  # Needed for a few TextBlob methods
+
+nltk.download('brown')
+nltk.download('punkt')
+
+
+twconfig = {  # Twitter API configuration: Enter credentials here!
+    'api_key': "",
+    'api_secret': "",
+    'access_token': "",
+    "access_secret": ""
+}
+
+# Tweepy setup
+auth = tweepy.OAuthHandler(
+    twconfig['api_key'],
+    twconfig['api_secret'])
+
+auth.set_access_token(
+    twconfig['access_token'],
+    twconfig['access_secret'])
+
+tw = tweepy.API(auth)
+
+
+def extract(query, filename):
+    """Returns results from a Twitter search. 
+    Accepts two arguments: the query (as a string object) to use to search Twitter,
+    along with a filename as a string to write the results to"""
+
+    outF = open(filename, "w")
+    for tweet in tweepy.Cursor(tw.search, tweet_mode="extended", q=query, ).items(100):
+      outF.write(tweet.full_text)
+
+
+def analyze_topics(sourcefile, floor=0):
+    with open(sourcefile, 'r') as file:
+        print("Reading file...\n")
+        input = file.read().replace('\n', '').replace('.', ' ').replace(',', ' ')
+        blob = TextBlob(input)
+        output = blob.noun_phrases
+
+    # Create and print tuples to chart
+    returndata = []
+    for term in set(output):
+        termcount = output.count(term)
+        if termcount > floor:
+            returndata.append((term, termcount))
+        else:
+            pass
+    return returndata
+
+
+
+
+extract("#reopen OR #reopenamerica- filter:retweets", "tweets.txt")
+
+
+data = analyze_topics('tweets.txt', 2)
+
+with open('export.csv', 'w') as output:
+    for pair in data:
+        output.write(f'{pair[0]},{pair[1]}\n')
